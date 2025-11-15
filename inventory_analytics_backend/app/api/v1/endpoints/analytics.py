@@ -7,15 +7,16 @@ from app.services.analytics import (
     inventory_value,
     sales_trend,
     category_revenue,
-    performers,
+    best_worst_performer as performers,
     stock_alerts,
-    product_age,
-    cash_flow,
-    price_variance,
+    avg_product_age as product_age,
+    inventory_vs_cashflow as cash_flow,
+    purchase_price_variance as price_variance,
     credit_health,
     forecasting,
-    suggestions
+    actionable_recommendations as suggestions
 )
+
 from datetime import datetime, timedelta
 
 router = APIRouter(prefix="/analytics", tags=["Analytics"])
