@@ -7,7 +7,7 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 type KPIData = {
   revenue: number | null;
   stockAge: number | null;
-  creditHealth: number | null;
+  creditHealth: string | number | null;
   inventoryValue: number | null;
 };
 
@@ -25,20 +25,36 @@ export default function KPISection() {
     async function loadKPIs() {
       try {
         const [revenue, stockAge, credit, inventory] = await Promise.all([
-          API.revenue(),
-          API.stockAge(),
-          API.creditHealth(),
-          API.inventoryValue(),
+          API.analytics.revenue(),
+          API.analytics.productAge(),
+          API.analytics.creditHealth(),
+          API.analytics.inventoryValue(),
         ]);
 
         setKpi({
-          revenue: revenue.total_revenue,
-          stockAge: stockAge.average_age,
-          creditHealth: credit.score,
-          inventoryValue: inventory.total_value,
+          revenue: revenue?.data?.total_revenue ?? null,
+
+          // ✅ FIXED KEY
+          stockAge: stockAge?.data?.average_product_age_days ?? null,
+
+          creditHealth:
+            credit?.data?.score !== undefined &&
+            credit?.data?.score !== null
+              ? credit.data.score
+              : "N/A",
+
+          // ✅ Your backend returns total_inventory_value
+          inventoryValue: inventory?.data?.total_inventory_value ?? null,
         });
       } catch (e) {
         console.error("KPI fetch error:", e);
+
+        setKpi({
+          revenue: null,
+          stockAge: null,
+          creditHealth: "N/A",
+          inventoryValue: null,
+        });
       } finally {
         setLoading(false);
       }
@@ -58,7 +74,9 @@ export default function KPISection() {
     {
       label: "Avg Stock Age",
       value:
-        typeof kpi.stockAge === "number" ? `${kpi.stockAge} days` : "—",
+        typeof kpi.stockAge === "number"
+          ? `${kpi.stockAge} days`
+          : "—",
     },
     {
       label: "Credit Health",
@@ -81,7 +99,9 @@ export default function KPISection() {
           className="bg-white/5 backdrop-blur-lg border border-white/10 rounded-2xl transition hover:bg-white/10"
         >
           <CardHeader>
-            <CardTitle className="text-white/80 text-sm">{item.label}</CardTitle>
+            <CardTitle className="text-white/80 text-sm">
+              {item.label}
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <p className="text-3xl font-semibold text-white">
