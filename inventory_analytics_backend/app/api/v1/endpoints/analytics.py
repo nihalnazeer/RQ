@@ -19,6 +19,9 @@ from app.services.analytics.credit_health import CreditHealthAnalyzer
 from app.services.analytics.forecasting import ForecastingEngine
 from app.services.analytics.actionable_recommendations import SuggestionEngine
 
+# NEW IMPORT ↓↓↓
+from app.services.analytics.dynamic_pricing import DynamicPricingEngine
+
 
 router = APIRouter(prefix="/analytics", tags=["Analytics"])
 
@@ -142,7 +145,6 @@ async def get_price_variance(db: Session = Depends(get_db)):
 # -----------------------------------------------------------
 @router.get("/credit-health")
 async def get_credit_health(db: Session = Depends(get_db)):
-    # This works because we stub suppliers as demo data when empty
     result = CreditHealthAnalyzer.analyze_credit_health(db)
     return {"status": "success", "data": result}
 
@@ -170,6 +172,41 @@ async def get_forecast(
 async def get_suggestions(db: Session = Depends(get_db)):
     result = SuggestionEngine.generate_suggestions(db)
     return {"status": "success", "data": result}
+
+
+# -----------------------------------------------------------
+# 14. DYNAMIC PRICING (NEW ENDPOINT)
+# -----------------------------------------------------------
+@router.get("/dynamic-pricing")
+async def get_dynamic_pricing(
+    db: Session = Depends(get_db),
+    sku_id: str = None,
+    clearance_days: int = 14,
+    margin_floor: float = 0.05
+):
+    """
+    If sku_id is provided → price recommendation for that SKU.
+    If sku_id is NOT provided → run on worst 10 performers.
+    """
+    if sku_id:
+        result = DynamicPricingEngine.recommend_price(
+            db, sku_id, clearance_days, margin_floor
+        )
+        return {"status": "success", "data": result}
+
+    # Auto-run on worst performers
+    worst = PerformanceAnalyzer.get_worst_performers(db, limit=10)
+    output = []
+
+    for item in worst:
+        sku = item.get("sku_id")
+        if sku:
+            res = DynamicPricingEngine.recommend_price(
+                db, sku, clearance_days, margin_floor
+            )
+            output.append(res)
+
+    return {"status": "success", "data": output}
 
 
 # -----------------------------------------------------------
