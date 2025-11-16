@@ -1,29 +1,58 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState, useEffect } from "react";
+import WelcomeSplash from "@/components/ui/WelcomeSplash";
+import TopNav from "@/components/home/TopNav";
+import KPISection from "@/components/home/KPISection";
+import ForecastSection from "@/components/home/ForecastSection";
+import ActionCenter from "@/components/home/ActionCenter";
 
-export default function Home() {
-  const [data, setData] = useState(null);
-  const [error, setError] = useState("");
+export default function HomePage() {
+  const [showSplash, setShowSplash] = useState(false);
+  const [mounted, setMounted] = useState(false); // smooth fade animation
 
   useEffect(() => {
-    fetch("http://127.0.0.1:8000/health")
-      .then((res) => res.json())
-      .then((d) => setData(d))
-      .catch((err) => setError("Failed to connect to backend"));
+    setMounted(true); // enables fade-in animation
+  }, []);
+
+  useEffect(() => {
+    const hasSeenSplash = sessionStorage.getItem("seenSplash");
+
+    if (!hasSeenSplash) {
+      setShowSplash(true);
+      sessionStorage.setItem("seenSplash", "true");
+
+      const timer = setTimeout(() => setShowSplash(false), 2500);
+      return () => clearTimeout(timer);
+    }
   }, []);
 
   return (
-    <div style={{ padding: 40 }}>
-      <h1>Testing Backend Connection</h1>
+    <main className="min-h-screen w-full bg-black text-white font-sans">
 
-      {error && <p style={{ color: "red" }}>{error}</p>}
+      {/* --- SPLASH SCREEN (first visit only) --- */}
+      {showSplash && <WelcomeSplash />}
 
-      {data ? (
-        <pre>{JSON.stringify(data, null, 2)}</pre>
-      ) : (
-        <p>Loading...</p>
+      {/* --- MAIN CONTENT --- */}
+      {!showSplash && (
+        <div
+          className={`transition-opacity duration-700 ${
+            mounted ? "opacity-100" : "opacity-0"
+          }`}
+        >
+          <TopNav />
+
+          {/* Unified layout spacing matching Financials */}
+          <div className="pt-32 px-10 space-y-12 max-w-7xl mx-auto">
+
+            <KPISection />
+
+            <ForecastSection />
+
+            <ActionCenter />
+          </div>
+        </div>
       )}
-    </div>
+    </main>
   );
 }
